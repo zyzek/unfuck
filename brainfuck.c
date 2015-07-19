@@ -243,6 +243,7 @@ void run_program(char *mem, char *prog) {
 	char *p = mem;
 	size_t proglen = strlen(prog);
 	DynArray *p_stack = new_dyn_array(sizeof(size_t));
+	int open_skip_loops = 0;
 
 	for (size_t i = 0; i < proglen; ++i) {
 
@@ -266,31 +267,34 @@ void run_program(char *mem, char *prog) {
 			--(*p);
 			break;
 		case '.':
-			//putchar(*p);
-			printf("%d ", *p);
+			putchar(*p);
 			break;
 		case ',':
 			*p = (char)getchar();
 			break;
 		case '[':
 			if (!*p) {
-				//WRONG
-				while (prog[i] != ']' && i < proglen) ++i;
+				open_skip_loops = 1;
+
+				while (open_skip_loops && i < proglen) {
+					++i;
+					if (prog[i] == '[') ++open_skip_loops;
+					else if (prog[i] == ']') --open_skip_loops;
+				}
 			}
 			else {
 				push(&i, p_stack);
 			}
 			break;
 		case ']':
-			if (!*p) {
-				void *t = pop(p_stack);
-
+			void *t = pop(p_stack);
+			if (*p) {
 				if (!t) {
 					fprintf(stderr, "Mismatched ].");
 					exit(1);
 				}
 
-				i = *(size_t *)t;
+				i = *(size_t *)t - 1;
 			}	
 			break;
 		}
@@ -301,8 +305,6 @@ int main(int argc, const char* argv[]) {
 	char *mem, *prog;
 	init(argc, (const char **)argv, &mem, &prog);
 	
-	printf("Mem contents: %s \nProg Contents: %s \nMem Size: %d\n", mem, prog, memsize);
-
 	run_program(mem, prog);
 
 	free(mem);
@@ -310,4 +312,3 @@ int main(int argc, const char* argv[]) {
 
 	return 0;
 }
-
